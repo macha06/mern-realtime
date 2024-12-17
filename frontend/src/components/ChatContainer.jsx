@@ -6,7 +6,6 @@ import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { useAuthStore } from "../store/useAuthStore";
 import { formatMessageTime } from "../lib/utils";
 
-
 const ChatContainer = () => {
   const {
     messages, 
@@ -14,7 +13,8 @@ const ChatContainer = () => {
     isMessagesLoading, 
     selectedUser,
     subsribeToMessages,
-    unsubsribeFromMessages
+    unsubsribeFromMessages,
+    deleteMessage
   } = useChatStore();
 
   const {authUser} = useAuthStore();
@@ -44,6 +44,10 @@ const ChatContainer = () => {
     )
   }
 
+  const handleDeleteMessage = async (messageId) => {
+    await deleteMessage(messageId);
+  };
+
   return (
     <div className="flex-1 flex flex-col overflow-auto">
       <ChatHeader />
@@ -70,6 +74,15 @@ const ChatContainer = () => {
               <time className="text-xs opacity-50 ml-1">
                 {formatMessageTime(message.createdAt)}
               </time>
+              {/* Tombol Hapus Pesan */}
+              {message.senderId === authUser._id && (
+                <button
+                  onClick={() => handleDeleteMessage(message._id)}
+                  className="text-red-500 text-xs hover:underline ml-2"
+                >
+                  Hapus
+                </button>
+              )}
             </div>
             <div className="chat-bubble flex flex-col">
               {message.image && (

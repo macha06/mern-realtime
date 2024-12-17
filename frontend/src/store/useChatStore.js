@@ -9,6 +9,7 @@ export const useChatStore = create((set, get) => ({
   selectedUser: null,
   isUsersLoading: false,
   isMessagesLoading: false,
+  isDeleting: false,
 
 
   getUsers: async () => {
@@ -45,6 +46,33 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  deleteMessage: async (messageId) => {
+    const { messages } = get();
+    try {
+      // Tambahkan indikator loading agar UX lebih baik
+      set({ isDeleting: true });
+  
+      // Panggil API hanya dengan messageId jika selectedUserId tidak diperlukan
+      await axiosInstance.delete(`/messages/delete/${messageId}`);
+  
+      // Update state secara aman
+      set({
+        messages: messages.filter((message) => message._id !== messageId),
+        isDeleting: false,
+      });
+  
+      toast.success("Pesan berhasil dihapus");
+    } catch (error) {
+      set({ isDeleting: false }); // Pastikan loader mati saat error
+      if (error.response && error.response.data) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Terjadi kesalahan. Silakan coba lagi.");
+      }
+    }
+  },
+  
+
   subsribeToMessages: () => {
     const {selectedUser} = get();
     if(!selectedUser) return;
@@ -58,11 +86,19 @@ export const useChatStore = create((set, get) => ({
         messages: [...get().messages, newMessage]
       });
     });
+
+    socket.on("deleteMessage", (deletedMessage) => {
+      // Update the state by removing the deleted message
+      set({
+        messages: get().messages.filter((message) => message._id !== deletedMessage._id),
+      });
+    });
   },
 
   unsubsribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
     socket.off("newMessage");
+    socket.off("deleteMessage");
   },
 
   setSelectedUser: (selectedUser) => set({selectedUser}),
