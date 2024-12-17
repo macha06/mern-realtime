@@ -1,5 +1,5 @@
 import { useChatStore } from "../store/useChatStore"
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import MessageInput from "./MessageInput";
 import ChatHeader from "./chatHeader";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
@@ -19,6 +19,9 @@ const ChatContainer = () => {
 
   const {authUser} = useAuthStore();
   const messageEndRef = useRef(null);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedMessageId, setSelectedMessageId] = useState(null);
 
   useEffect(() => {
     getMessages(selectedUser._id)
@@ -44,8 +47,14 @@ const ChatContainer = () => {
     )
   }
 
-  const handleDeleteMessage = async (messageId) => {
-    await deleteMessage(messageId);
+  const openDeleteConfirmation = (messageId) => {
+    setSelectedMessageId(messageId);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteMessage = async () => {
+    await deleteMessage(selectedMessageId);
+    setIsModalOpen(false);
   };
 
   return (
@@ -77,11 +86,11 @@ const ChatContainer = () => {
               {/* Tombol Hapus Pesan */}
               {message.senderId === authUser._id && (
                 <button
-                  onClick={() => handleDeleteMessage(message._id)}
-                  className="text-red-500 text-xs hover:underline ml-2"
-                >
-                  Hapus
-                </button>
+                onClick={() => openDeleteConfirmation(message._id)}
+                className="text-red-500 text-xs hover:underline ml-2"
+              >
+                Hapus
+              </button>
               )}
             </div>
             <div className="chat-bubble flex flex-col">
@@ -99,6 +108,32 @@ const ChatContainer = () => {
       </div>
 
       <MessageInput />
+
+      {/* Modal Konfirmasi Hapus */}
+      {isModalOpen && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">Konfirmasi Hapus</h3>
+            <p className="py-4">
+              Apakah Anda yakin ingin menghapus pesan ini? Tindakan ini tidak dapat dibatalkan.
+            </p>
+            <div className="modal-action">
+              <button
+                className="btn btn-error"
+                onClick={handleDeleteMessage}
+              >
+                Hapus
+              </button>
+              <button
+                className="btn"
+                onClick={() => setIsModalOpen(false)}
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
