@@ -10,7 +10,7 @@ export const useChatStore = create((set, get) => ({
   isUsersLoading: false,
   isMessagesLoading: false,
   isDeleting: false,
-
+  usersWithNewMessages: [],
 
   getUsers: async () => {
     set({ isUsersLoading: true });
@@ -29,6 +29,11 @@ export const useChatStore = create((set, get) => ({
     try {
       const res = await axiosInstance.get(`/messages/${userId}`);
       set({ messages: res.data });
+      set({
+        usersWithNewMessages: get().usersWithNewMessages.filter(
+          (id) => id !== userId
+        ),
+      });
     } catch (error) {
       toast.error(error.response.data.message);
     } finally {
@@ -80,11 +85,19 @@ export const useChatStore = create((set, get) => ({
     const socket = useAuthStore.getState().socket;
 
     socket.on("newMessage", (newMessage) => {
-      const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
-      if(!isMessageSentFromSelectedUser) return
-      set({
-        messages: [...get().messages, newMessage]
-      });
+      const { selectedUser, messages, usersWithNewMessages } = get();
+
+      // Update state messages jika pesan dari user yang dipilih
+      if (selectedUser?._id === newMessage.senderId) {
+        set({ messages: [...messages, newMessage] });
+      } else {
+        // Tambahkan ID pengguna ke usersWithNewMessages jika belum ada
+        if (!usersWithNewMessages.includes(newMessage.senderId)) {
+          set({
+            usersWithNewMessages: [...usersWithNewMessages, newMessage.senderId],
+          });
+        }
+      }
     });
 
     socket.on("deleteMessage", (deletedMessage) => {
@@ -101,5 +114,13 @@ export const useChatStore = create((set, get) => ({
     socket.off("deleteMessage");
   },
 
-  setSelectedUser: (selectedUser) => set({selectedUser}),
+  setSelectedUser: (selectedUser) => {
+    // Reset notifikasi merah untuk user yang dipilih
+    set({
+      selectedUser,
+      usersWithNewMessages: get().usersWithNewMessages.filter(
+        (id) => id !== selectedUser._id
+      ),
+    });
+  },
 }));
